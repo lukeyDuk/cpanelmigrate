@@ -1,5 +1,5 @@
 # STILL TO DO
-# LOG ERRORS SO WE CAN FIND FAILURES DURING MIGRATIONS 100K SITES
+# LOG ERRORS SO WE CAN FIND FAILURES DURING MIGRATIONS
 # ADJUST WEBSITE PHP VERSION TO 4.4
 
 #!/bin/sh
@@ -7,18 +7,14 @@
  echo "What is the cPanel username!"
  read cpuser
 
- cd /home/{cpuser}/public_html
+ cd /home/${cpuser}/public_html
 
 # Locate the relevant config (in this case wp-config)
 
 $wpconf = "find . -name wp-config.php -type f"
-
-$dbname = grep "DB_NAME" $wpconf
-
-$username = grep "DB_USER" $wpconf
-
-$userpass = grep "DB_PASSWORD" $wpconf
-
+$dbname = "grep "DB_NAME" ${wpconf}"
+$username = "grep "DB_USER" ${wpconf}"
+$userpass = "grep "DB_PASSWORD" ${wpconf}"
 $sqldump = "find . -name \*.sql -type f"
 
 # Create the db
@@ -41,7 +37,7 @@ if [ -f /root/.my.cnf ]; then
 	mysql -e "FLUSH PRIVILEGES;"
 	echo "You're good now on that, just importing the dump"
 
-    mysql -e ${dbname} < {$sqldump}
+    mysql -e ${dbname} < ${sqldump}
 
     echo "Awesome, all done!"
 
