@@ -9,14 +9,14 @@
 
 	 wpconf=$(find . -name wp-config.php -type f)
 	 dbname=$(grep "DB_NAME" ${wpconf} | cut -d \' -f 4)
- 	username=$(grep "DB_USER" ${wpconf} | cut -d \' -f 4)
+ 	 username=$(grep "DB_USER" ${wpconf} | cut -d \' -f 4)
 	 userpass=$(grep "DB_PASSWORD" ${wpconf} | cut -d \' -f 4)
 	 sqldump=$(find . -name \*.sql -type f)
 	 newdbname=$cpuser"_"$dbname
 	 newdbuser=$cpuser"_"$username
 	 hostname=$(hostname)
- 	wpbackup=$(cp ${wpconf} wpconf-backup.php)
- 	wpbackuplocation=$(find . -name wpconf-backup.php -type f)
+ 	 wpbackup=$(cp ${wpconf} wpconf-backup.php)
+ 	 wpbackuplocation=$(find . -name wpconf-backup.php -type f)
 
 # Check the SQL version being used
 
