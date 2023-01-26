@@ -15,6 +15,8 @@
  newdbname=$cpuser"_"$dbname
  newdbuser=$cpuser"_"$username
  hostname=$(hostname)
+ wpbackup=$(cp ${wpconf} wpconf-backup.php)
+ wpbackuplocation=$(find . -name wpconf-backup.php -type f)
 
 # Check the SQL version being used
 
@@ -54,9 +56,19 @@ if [ -f /root/.my.cnf ]; then
 
     echo "We've added ${newdbname} to the dbmap for account ${cpuser}"
 
-# Copy file to backup
+# Make a copy of wp-config
 
-# Add DB prefix in wp-config
+	cp $wpconf wpconf-backup
+	echo "We've made a backup of your config prior to these changes"
+	echo "This can be found at $wpbackuplocation"
+
+# Add DB & USER prefix in wp-config
+
+	$wpconf -exec sed -i s/$dbname/$newdbname/gI {} \;
+	echo "We've now replaced $dbname with $newdbname in the WP Config"
+
+	$wpconf -exec sed -i s/$username/$newdbuser/gI {} \;
+	echo "We've now replaced $username with $newdbuser in the WP Config"
 
 # Add info to advise wp-config auto updated
 
@@ -71,5 +83,3 @@ if [ -f /root/.my.cnf ]; then
 # CP INSTANCE NAME
 
 	echo You have migrated this account to $hostname
-
-# IF WP THEN - OTHERWISE THEN
