@@ -29,7 +29,7 @@ if [ -f /root/.my.cnf ]; then
 
 	   
 	echo "Creating new MySQL database..."
-    mysql -e "CREATE DATABASE ${newdbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+	mysql -e "CREATE DATABASE ${newdbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
 	echo "Database successfully created!"
 	
     
