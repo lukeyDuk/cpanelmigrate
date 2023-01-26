@@ -17,6 +17,8 @@
 	 hostname=$(hostname)
  	 wpbackup=$(cp ${wpconf} wpconf-backup.php)
  	 wpbackuplocation=$(find . -name wpconf-backup.php -type f)
+	 sitebackuplocation=$(find . -name sitefiles -type d)
+	 sitelocation=$(/home/${cpuser}/public_html)
 
 # Check the SQL version being used
 
@@ -69,10 +71,15 @@ if [ -f /root/.my.cnf ]; then
 
 # Add info to advise wp-config auto updated
 
-# CLEANUP // DELETE SQL DUMP, MOVE FILES DIRECTORY
+# CLEANUP // DELETE SQL DUMP
 
 	rm $sqldump -f
 	echo "SQL Dump succesfully removed"
+
+# CLEANUP // MOVE SITE FILES TO PUBLIC_HTML
+
+	mv -v $sitebackuplocation $sitelocation
+	echo "Migrated files moved to correct location"
 
 # ADVISE OF ERRORS
 
