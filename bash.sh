@@ -1,7 +1,4 @@
 # STILL TO DO
-# AUTO LOCATE THE DUMP FILE - LOCATION STANDARD?
-# EASILY SELECT CPANEL ACCOUNT WITHOUT MANUAL INPUT (IF POSSIBLE)
-# PULL DBNAME AND PASSWORD FROM THE WP-CONFIG (OR OTHER RELEVANT FILE)
 # LOG ERRORS SO WE CAN FIND FAILURES DURING MIGRATIONS 100K SITES
 # ADJUST WEBSITE PHP VERSION TO 4.4
 
@@ -51,9 +48,6 @@ if [ -f /root/.my.cnf ]; then
 	exit
 
 #Map the DB to a user
-
-    echo "What is the cPanel username!"
-    read cpuser
 
     /usr/local/cpanel/bin/dbmaptool ${cpuser} --type mysql --dbs ${dbname}
 
