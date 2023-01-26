@@ -1,22 +1,22 @@
 #!/bin/sh
 
- echo "What is the cPanel username!"
- read cpuser
+ 	echo "What is the cPanel username!"
+	 read cpuser
 
- cd /home/${cpuser}/public_html
+ 	cd /home/${cpuser}/public_html
 
 # Variable settings & file finding
 
- wpconf=$(find . -name wp-config.php -type f)
- dbname=$(grep "DB_NAME" ${wpconf} | cut -d \' -f 4)
- username=$(grep "DB_USER" ${wpconf} | cut -d \' -f 4)
- userpass=$(grep "DB_PASSWORD" ${wpconf} | cut -d \' -f 4)
- sqldump=$(find . -name \*.sql -type f)
- newdbname=$cpuser"_"$dbname
- newdbuser=$cpuser"_"$username
- hostname=$(hostname)
- wpbackup=$(cp ${wpconf} wpconf-backup.php)
- wpbackuplocation=$(find . -name wpconf-backup.php -type f)
+	 wpconf=$(find . -name wp-config.php -type f)
+	 dbname=$(grep "DB_NAME" ${wpconf} | cut -d \' -f 4)
+ 	username=$(grep "DB_USER" ${wpconf} | cut -d \' -f 4)
+	 userpass=$(grep "DB_PASSWORD" ${wpconf} | cut -d \' -f 4)
+	 sqldump=$(find . -name \*.sql -type f)
+	 newdbname=$cpuser"_"$dbname
+	 newdbuser=$cpuser"_"$username
+	 hostname=$(hostname)
+ 	wpbackup=$(cp ${wpconf} wpconf-backup.php)
+ 	wpbackuplocation=$(find . -name wpconf-backup.php -type f)
 
 # Check the SQL version being used
 
@@ -74,11 +74,10 @@ if [ -f /root/.my.cnf ]; then
 
 # CLEANUP // DELETE SQL DUMP, MOVE FILES DIRECTORY
 
+	rm $sqldump -f
+	echo "SQL Dump succesfully removed"
+
 # ADVISE OF ERRORS
-
-# UPDATE SITE TO PHP 4.4
-
-# CHECK SQL VERSION - DIFF SCRIPTS PER SQL VERSION
 
 # CP INSTANCE NAME
 
