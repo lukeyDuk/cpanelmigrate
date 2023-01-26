@@ -1,7 +1,7 @@
 #!/bin/sh
 
  	echo "What is the cPanel username!"
-	 read cpuser
+	read cpuser
 
  	cd /home/${cpuser}/public_html
 
@@ -45,15 +45,12 @@ if [ -f /root/.my.cnf ]; then
 ## Other DB's in dump need creating
 
     mysql -e ${newdbname} < ${sqldump}
-
     echo "Awesome, all done!"
-
 	exit
 
 #Map the DB to a user
 
     /usr/local/cpanel/bin/dbmaptool ${cpuser} --type mysql --dbs ${newdbname}
-
     echo "We've added ${newdbname} to the dbmap for account ${cpuser}"
 
 # Make a copy of wp-config
