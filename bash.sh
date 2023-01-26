@@ -1,7 +1,3 @@
-# STILL TO DO
-# LOG ERRORS SO WE CAN FIND FAILURES DURING MIGRATIONS
-# ADJUST WEBSITE PHP VERSION TO 4.4
-
 #!/bin/sh
 
  echo "What is the cPanel username!"
@@ -9,13 +5,20 @@
 
  cd /home/${cpuser}/public_html
 
-# Locate the relevant config (in this case wp-config)
+# Variable settings & file finding
 
-$wpconf = "find . -name wp-config.php -type f"
-$dbname = "grep "DB_NAME" ${wpconf}"
-$username = "grep "DB_USER" ${wpconf}"
-$userpass = "grep "DB_PASSWORD" ${wpconf}"
-$sqldump = "find . -name \*.sql -type f"
+ wpconf=$(find . -name wp-config.php -type f)
+ dbname=$(grep "DB_NAME" ${wpconf} | cut -d \' -f 4)
+ username=$(grep "DB_USER" ${wpconf} | cut -d \' -f 4)
+ userpass=$(grep "DB_PASSWORD" ${wpconf} | cut -d \' -f 4)
+ sqldump=$(find . -name \*.sql -type f)
+ newdbname=$cpuser"_"$dbname
+ newdbuser=$cpuser"_"$username
+ hostname=$(hostname)
+
+# Check the SQL version being used
+
+
 
 # Create the db
 # If /root/.my.cnf exists then it won't ask for root password
@@ -24,20 +27,22 @@ if [ -f /root/.my.cnf ]; then
 
 	   
 	echo "Creating new MySQL database..."
-	mysql -e "CREATE DATABASE ${dbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+    mysql -e "CREATE DATABASE ${newdbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
 	echo "Database successfully created!"
 	
     
 	echo "Creating new user..."
-	mysql -e "CREATE USER ${username}@localhost IDENTIFIED BY '${userpass}';"
+	mysql -e "CREATE USER ${newdbuser}@localhost IDENTIFIED BY '${userpass}';"
 	echo "User successfully created!"
 
-	echo "Granting ALL privileges on ${dbname} to ${username}!"
-	mysql -e "GRANT ALL PRIVILEGES ON ${dbname}.* TO '${username}'@'localhost';"
+	echo "Granting ALL privileges on ${newdbname} to ${newdbuser}!"
+	mysql -e "GRANT ALL PRIVILEGES ON ${newdbname}.* TO '${newdbuser}'@'localhost';"
 	mysql -e "FLUSH PRIVILEGES;"
 	echo "You're good now on that, just importing the dump"
 
-    mysql -e ${dbname} < ${sqldump}
+## Other DB's in dump need creating
+
+    mysql -e ${newdbname} < ${sqldump}
 
     echo "Awesome, all done!"
 
@@ -45,8 +50,26 @@ if [ -f /root/.my.cnf ]; then
 
 #Map the DB to a user
 
-    /usr/local/cpanel/bin/dbmaptool ${cpuser} --type mysql --dbs ${dbname}
+    /usr/local/cpanel/bin/dbmaptool ${cpuser} --type mysql --dbs ${newdbname}
 
-    echo "We've added ${dbname} to the dbmap for account ${cpuser}"
+    echo "We've added ${newdbname} to the dbmap for account ${cpuser}"
 
-#ADVISE OF ERRORS
+# Copy file to backup
+
+# Add DB prefix in wp-config
+
+# Add info to advise wp-config auto updated
+
+# CLEANUP // DELETE SQL DUMP, MOVE FILES DIRECTORY
+
+# ADVISE OF ERRORS
+
+# UPDATE SITE TO PHP 4.4
+
+# CHECK SQL VERSION - DIFF SCRIPTS PER SQL VERSION
+
+# CP INSTANCE NAME
+
+	echo You have migrated this account to $hostname
+
+# IF WP THEN - OTHERWISE THEN
