@@ -81,6 +81,8 @@ if [ -f /root/.my.cnf ]; then
 	mv -v $sitebackuplocation $sitelocation
 	echo "Migrated files moved to correct location"
 
+	rm $sitebackuplocation -f
+	echo "Old directory removed"
 # ADVISE OF ERRORS
 
 # CP INSTANCE NAME
