@@ -1,0 +1,20 @@
+#!/bin/sh
+
+read -p "enter the cPanel username: " cpuser
+cd "/home/$cpuser/public_html"
+
+#Find the dumps for creation of databases
+
+find . -name \*.sql -type f -exec bash -c '
+    echo "found $# sql dumps"
+    for file; do
+        version=$(grep -Poe "-- Server version \K.*" "$file")
+        dbnames=( $(grep -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*" "$file") )
+
+        printf "\n          file: %s\n" "$file"
+        printf "server version: %s\n" "$version"
+        printf "%2s database(s): %s\n" "${#dbnames[*]}" "${dbnames[*]}"
+        printf "mysql -u root < %s\n" "$(readlink -f $file)"
+
+    done
+' 'find-sh' {} +
