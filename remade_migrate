@@ -64,6 +64,12 @@ for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql 
 
 #Let's update the wordpress config if there is one
 
+if [ -z $wpconfig ]; 
+
+then echo "No WP Config, skipping section"
+
+else
+
 find . -name 'wp-config.php' -exec sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpdb'/" {} +
 find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" {} +
 
@@ -72,6 +78,8 @@ find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/
 echo WP Config located at $wpconfig
 echo WP DB is now showing as $wpdb
 echo WP User is now showing as $wpuser
+
+fi
 
 fi
 
