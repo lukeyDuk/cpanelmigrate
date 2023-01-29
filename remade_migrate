@@ -66,7 +66,7 @@ for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql 
 
 if [ -z $wpconfig ]; 
 
-then echo "No WP Config, skipping section"
+then echo "No WP Config, skipping section, migration completed"
 
 else
 
@@ -78,9 +78,8 @@ find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/
 echo WP Config located at $wpconfig
 echo WP DB is now showing as $wpdb
 echo WP User is now showing as $wpuser
+echo Migration completed
 
 fi
 
 fi
-
-echo Awesome, another site sucessfully migrated
