@@ -2,7 +2,15 @@
 
 read -p "enter the cPanel username: " cpuser
 cd "/home/$cpuser/public_html"
+
 sqldump=$(find . -name \*.sql -type f)
+
+if [ -z $sqldump ];
+
+then echo "No sql file, nothing to do"
+
+else
+
 dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
 dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*" $sqldump | grep -Pao "\([^,]*,\K[^,]*"))
 wpconfig=$(find . -name wp-config.php -type f)
@@ -25,12 +33,10 @@ grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2
 #Find the databases & use functions
 
 find . -name \*.sql -type f -exec bash -c '
-    echo "found $# sql dumps"
+    echo "found $# sql dump"
     for file; do
         dbnames=( $(grep -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*" "$file") )
         printf "%2s database(s): %s\n" "${#dbnames[*]}" "${dbnames[*]}"
-        dbnames=( $(grep -Poe "USE [^\`]*\`\K[^\`]*" "$file") )
-        printf "%2s use commands: %s\n" "${#dbnames[*]}" "${dbnames[*]}"
     done
 ' 'find-sh' {} +
 
@@ -39,12 +45,11 @@ find . -name \*.sql -type f -exec bash -c '
 find . -name '*.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 
-
-#Now lets do some clever work and add prefixes to the users table
+#Now lets do some clever work and add prefixes to the user entry table
 
 find . -name '*.sql' -exec sed -i "" {} +
 
-#Now lets do some clever work and add prefixes to the db table
+#Now lets do some clever work and add prefixes to the db entry table
 
 find . -name '*.sql' -exec sed -i "" {} +
 
@@ -57,12 +62,6 @@ mysql -u root < $sqldump
 for i in ${dbnames[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
 for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
 
-#Let's look for a wordpress config
-
-echo WP Config located at $wpconfig
-echo WP DB is showing as $wpdb
-echo WP User is showing as $wpuser
-
 #Let's update the wordpress config if there is one
 
 find . -name 'wp-config.php' -exec sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpdb'/" {} +
@@ -73,5 +72,7 @@ find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/
 echo WP Config located at $wpconfig
 echo WP DB is now showing as $wpdb
 echo WP User is now showing as $wpuser
+
+fi
 
 echo Awesome, another site sucessfully migrated
