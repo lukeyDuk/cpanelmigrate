@@ -3,8 +3,8 @@
 read -p "enter the cPanel username: " cpuser
 cd "/home/$cpuser/public_html"
 sqldump=$(find . -name \*.sql -type f)
-#dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-#dbusers=($(grep $sqldump -Poe ""))
+dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*" $sqldump | grep -Pao "\([^,]*,\K[^,]*"))
 wpconfig=$(find . -name wp-config.php -type f)
 wpdb=$(cat wp-config.php | grep DB_NAME | cut -d \' -f 4)
 wpuser=$(cat wp-config.php | grep DB_USER | cut -d \' -f 4)
@@ -19,7 +19,8 @@ grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K
 #Find the .db entries
 
 echo "The below .db entries were found"
-grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K[^,]*'
+grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*'
+grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*'
 
 #Find the databases & use functions
 
