@@ -1,0 +1,57 @@
+#!/bin/sh
+
+read -p "enter the cPanel username: " cpuser
+cd "/home/$cpuser/public_html"
+sqldump=$(find . -name \*.sql -type f)
+dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+dbusers=($(grep $sqldump -Poe ""))
+wpconfig=$(find . -name wp-config.php -type f)
+wpdb=$(grep "DB_NAME" ${wpconfig} | cut -d \' -f 4)
+wpuser=$(grep "DB_PASSWORD" ${wpconfig} | cut -d \' -f 4)
+
+#Find the users
+
+
+#Find the databases
+
+find . -name \*.sql -type f -exec bash -c '
+    echo "found $# sql dumps"
+    for file; do
+        dbnames=( $(grep -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*" "$file") )
+        printf "%2s database(s): %s\n" "${#dbnames[*]}" "${dbnames[*]}"
+    done
+' 'find-sh' {} +
+
+#Now lets do some clever work and add prefixes pre the db dump
+
+find . -name '*.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+
+#Now lets do some clever work and add prefixes to the users table
+
+#Now lets do some clever work and add prefixes to the db table
+
+#IMPORT THE DUMP
+
+mysql -u root < ${sqldump}
+
+#Map the DBs & users to a cpanel user
+
+for i in ${dbnames[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i"; done
+
+for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i"; done
+
+#Let's look for a wordpress config
+
+echo WP Config located at $wpconfig
+echo WP DB is showing as $wpdb
+echo WP User is showing as $wpuser
+
+#Let's update the wordpress config if there is one
+
+#Let's Check the wp-config new output (should be prefixed)
+
+echo WP Config located at $wpconfig
+echo WP DB is now showing as $wpdb
+echo WP User is now showing as $wpuser
+
+echo Awesome, another site sucessfully migrated
