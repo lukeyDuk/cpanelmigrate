@@ -11,13 +11,10 @@ wpuser=$(cat wp-config.php | grep DB_USER | cut -d \' -f 4)
 newwpuser=$cpuser"_"$wpuser
 newwpdb=$cpuser"_"$wpdb
 
-echo $newwpdb
-echo $newwpuser
-
 #Find the .user entries
 
 echo "The below .user entries were found"
-"cut -d',' -f2 <(awk '/.*INTO .?user.? VALUES.*/,/.*;/{if (NR > 2) nr[NR]}; NR in nr' ./anikokiss_mysql4.sql)"
+cut -d',' -f2 <(awk '/.*INTO .?user.? VALUES.*/,/.*;/{if (NR > 2) nr[NR]}; NR in nr' ./anikokiss_mysql4.sql)
 
 #Find the .db entries
 
@@ -40,7 +37,11 @@ find . -name '*.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}
 
 #Now lets do some clever work and add prefixes to the users table
 
+find . -name '*.sql' -exec sed -i "" {} +
+
 #Now lets do some clever work and add prefixes to the db table
+
+find . -name '*.sql' -exec sed -i "" {} +
 
 #IMPORT THE DUMP
 
