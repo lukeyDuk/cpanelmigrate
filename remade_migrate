@@ -14,26 +14,30 @@ newwpdb=$cpuser"_"$wpdb
 #Find the .user entries
 
 echo "The below .user entries were found"
-cut -d',' -f2 <(awk '/.*INTO .?user.? VALUES.*/,/.*;/{if (NR > 2) nr[NR]}; NR in nr' ./anikokiss_mysql4.sql)
+grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K[^,]*'
 
 #Find the .db entries
 
 echo "The below .db entries were found"
-cut -d',' -f2 <(awk '/.*INTO .?db.? VALUES.*/,/.*;/{if (NR > 2) nr[NR]}; NR in nr' ./anikokiss_mysql4.sql)
+grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K[^,]*'
 
-#Find the databases
+#Find the databases & use functions
 
 find . -name \*.sql -type f -exec bash -c '
     echo "found $# sql dumps"
     for file; do
         dbnames=( $(grep -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*" "$file") )
         printf "%2s database(s): %s\n" "${#dbnames[*]}" "${dbnames[*]}"
+        dbnames=( $(grep -Poe "USE [^\`]*\`\K[^\`]*" "$file") )
+        printf "%2s use commands: %s\n" "${#dbnames[*]}" "${dbnames[*]}"
     done
 ' 'find-sh' {} +
 
-#Now lets do some clever work and add prefixes pre the db dump
+#Now lets do some clever work and add prefixes pre the db dump & subsequent use commands
 
 find . -name '*.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+
 
 #Now lets do some clever work and add prefixes to the users table
 
@@ -45,12 +49,12 @@ find . -name '*.sql' -exec sed -i "" {} +
 
 #IMPORT THE DUMP
 
-mysql -u root < ${sqldump}
+mysql -u root < $sqldump
 
 #Map the DBs & users to a cpanel user
 
-for i in ${dbnames[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i"; done
-for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i"; done
+for i in ${dbnames[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
 
 #Let's look for a wordpress config
 
