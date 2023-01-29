@@ -3,14 +3,26 @@
 read -p "enter the cPanel username: " cpuser
 cd "/home/$cpuser/public_html"
 sqldump=$(find . -name \*.sql -type f)
-dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-dbusers=($(grep $sqldump -Poe ""))
+#dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+#dbusers=($(grep $sqldump -Poe ""))
 wpconfig=$(find . -name wp-config.php -type f)
-wpdb=$(grep "DB_NAME" ${wpconfig} | cut -d \' -f 4)
-wpuser=$(grep "DB_PASSWORD" ${wpconfig} | cut -d \' -f 4)
+wpdb=$(cat wp-config.php | grep DB_NAME | cut -d \' -f 4)
+wpuser=$(cat wp-config.php | grep DB_USER | cut -d \' -f 4)
+newwpuser=$cpuser"_"$wpuser
+newwpdb=$cpuser"_"$wpdb
 
-#Find the users
+echo $newwpdb
+echo $newwpuser
 
+#Find the .user entries
+
+echo "The below .user entries were found"
+"cut -d',' -f2 <(awk '/.*INTO .?user.? VALUES.*/,/.*;/{if (NR > 2) nr[NR]}; NR in nr' ./anikokiss_mysql4.sql)"
+
+#Find the .db entries
+
+echo "The below .db entries were found"
+cut -d',' -f2 <(awk '/.*INTO .?db.? VALUES.*/,/.*;/{if (NR > 2) nr[NR]}; NR in nr' ./anikokiss_mysql4.sql)
 
 #Find the databases
 
@@ -37,7 +49,6 @@ mysql -u root < ${sqldump}
 #Map the DBs & users to a cpanel user
 
 for i in ${dbnames[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i"; done
-
 for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i"; done
 
 #Let's look for a wordpress config
@@ -47,6 +58,9 @@ echo WP DB is showing as $wpdb
 echo WP User is showing as $wpuser
 
 #Let's update the wordpress config if there is one
+
+find . -name 'wp-config.php' -exec sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpdb'/" {} +
+find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" {} +
 
 #Let's Check the wp-config new output (should be prefixed)
 
