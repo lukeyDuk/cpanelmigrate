@@ -11,47 +11,37 @@ then echo "No sql file, nothing to do"
 
 else
 
-dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*" $sqldump | grep -Pao "\([^,]*,\K[^,]*"))
+#dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+#dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*" $sqldump | grep -Pao "\([^,]*,\K[^,]*"))
 wpconfig=$(find . -name wp-config.php -type f)
 wpdb=$(cat wp-config.php | grep DB_NAME | cut -d \' -f 4)
 wpuser=$(cat wp-config.php | grep DB_USER | cut -d \' -f 4)
 newwpuser=$cpuser"_"$wpuser
 newwpdb=$cpuser"_"$wpdb
 
-#Find the .user entries
+#Find the .user entries & add the prefix
 
-echo "The below .user entries were found"
 grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K[^,]*'
 
-#Find the .db entries
+echo "Prefixes now added - new output"
 
-echo "The below .db entries were found"
+grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K[^,]*'
+
+
+#Find the .db entries & add the prefix
+
 grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*'
 grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*'
 
-#Find the databases & use functions
+echo "Prefixes now added - new output"
 
-find . -name \*.sql -type f -exec bash -c '
-    echo "found $# sql dump"
-    for file; do
-        dbnames=( $(grep -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*" "$file") )
-        printf "%2s database(s): %s\n" "${#dbnames[*]}" "${dbnames[*]}"
-    done
-' 'find-sh' {} +
+grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*'
+grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*'
 
 #Now lets do some clever work and add prefixes pre the db dump & subsequent use commands
 
 find . -name '*.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
-
-#Now lets do some clever work and add prefixes to the user entry table
-
-find . -name '*.sql' -exec sed -i "" {} +
-
-#Now lets do some clever work and add prefixes to the db entry table
-
-find . -name '*.sql' -exec sed -i "" {} +
 
 #IMPORT THE DUMP
 
