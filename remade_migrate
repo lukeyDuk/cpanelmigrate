@@ -55,15 +55,15 @@ find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 
 #IMPORT THE DUMP
 
-mysql -u root < ${sqldump}
+mysql -f -u root < ${sqldump}
 
 #Map the DBs & users to a cpanel user
 
 dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-for i in ${dbnames[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+for i in "${dbnames[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
 
 dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*"))
-for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
+for i in "${dbusers[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
 
 #Let's update the wordpress config if there is one
 
@@ -82,7 +82,5 @@ echo WP Config located at $wpconfig
 echo WP DB is now showing as $wpdb
 echo WP User is now showing as $wpuser
 echo Migration completed
-
-fi
 
 fi
