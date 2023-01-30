@@ -11,13 +11,15 @@ then echo "No sql file, nothing to do"
 
 else
 
-#dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-#dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*" $sqldump | grep -Pao "\([^,]*,\K[^,]*"))
+dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*" $sqldump | grep -Pao "\([^,]*,\K[^,]*"))
 wpconfig=$(find . -name wp-config.php -type f)
 wpdb=$(cat wp-config.php | grep DB_NAME | cut -d \' -f 4)
 wpuser=$(cat wp-config.php | grep DB_USER | cut -d \' -f 4)
 newwpuser=$cpuser"_"$wpuser
 newwpdb=$cpuser"_"$wpdb
+
+
 
 #Find the .user entries & add the prefix
 
