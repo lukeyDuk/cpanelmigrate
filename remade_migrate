@@ -57,13 +57,63 @@ find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 
 mysql -f -u root < ${sqldump}
 
+#mysqldump --no-create-db --no-create-info $cpuser_mysql -t user -t db
+
+#mysql -e "INSERT INTO mysql.db SELECT * from '$cpuser'_mysql.db;" 
+#mysql -e "INSERT INTO mysql.user SELECT * from '$cpuser'_mysql.user;" 
+
 #Map the DBs & users to a cpanel user
 
-dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-for i in "${dbnames[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+echo "alter table "$cpuser"_mysql.user
+ADD Show_db_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Super_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Create_tmp_table_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Lock_tables_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Execute_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Repl_slave_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Repl_client_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Create_view_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Show_view_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Create_routine_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Alter_routine_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Create_user_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Event_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD Trigger_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD ssl_type enum('', 'ANY', 'X509', 'SPECIFIED') CHARACTER SET utf8 NOT NULL DEFAULT '',
+ADD ssl_cipher blob NOT NULL,
+ADD x509_issuer blob NOT NULL,
+ADD x509_subject blob NOT NULL,
+ADD max_questions int(11) unsigned NOT NULL DEFAULT '0',
+ADD max_updates int(11) unsigned NOT NULL DEFAULT '0',
+ADD max_connections int(11) unsigned NOT NULL DEFAULT '0',
+ADD max_user_connections int(11) unsigned NOT NULL DEFAULT '0'
+ADD plugin char(64) COLLATE utf8_bin NOT NULL DEFAULT 'mysql_native_password',
+ADD authentication_string text COLLARE urf8_bin,
+ADD password_expired enum('N', 'Y') CHARACHTER SET utf8 NOT NULL DEFAULT 'N'
+ADD password_last_changed timestamp NULL DEFAULT NULL,
+ADD password_lifetime smallint(5) unsigned DEFAULT NULL,
+ADD account_locked enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
 
-dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*"))
-for i in "${dbusers[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
+echo "alter table "$cpuser"_mysql.db
+add Create_tmp_table_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Lock_tables_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Create_view_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Show_view_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Create_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Alter_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Execute_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Event_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Trigger_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
+echo "INSERT INTO mysql.user SELECT * from "$cpuser"_mysql.user;" | mysql -u root;
+
+
+#dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+#for i in "${dbnames[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+
+#dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*"))
+#for i in "${dbusers[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
 
 #Let's update the wordpress config if there is one
 
