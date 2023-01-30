@@ -11,47 +11,58 @@ then echo "No sql file, nothing to do"
 
 else
 
-dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*" $sqldump | grep -Pao "\([^,]*,\K[^,]*"))
 wpconfig=$(find . -name wp-config.php -type f)
 wpdb=$(cat wp-config.php | grep DB_NAME | cut -d \' -f 4)
 wpuser=$(cat wp-config.php | grep DB_USER | cut -d \' -f 4)
 newwpuser=$cpuser"_"$wpuser
 newwpdb=$cpuser"_"$wpdb
 
+dbusertbls=$(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']);
+dbusertbls=$(echo $dbusertbls | xargs -n1 | sort| uniq);
 
+fi
 
-#Find the .user entries & add the prefix
+for dbusertbl in $dbusertbls
+do
+        if [[ $dbusertbl != ${cpuser}\_* ]]
+        then
+                sed -i "/INTO \`user\` VALUES/ s/$dbusertbl\\b/${cpuser}\_${dbusertbl}/g" $sqldump
+        fi
+done
 
-grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K[^,]*'
+dbusers=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*' | grep -Pzo [^\']);
+dbnames=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']);
+dbnames=$(echo $dbnames | xargs -n1 | sort| uniq);
 
-echo "Prefixes now added - new output"
+for dbuser in $dbusers
+do
+        if [[ $dbuser != ${cpuser}\_* ]]
+        then
+                sed -i "/INTO \`db\` VALUES/ s/$dbuser\\b/${cpuser}\_${dbuser}/g" $sqldump
+        fi
+done
 
-grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\([^,]*,\K[^,]*'
-
-
-#Find the .db entries & add the prefix
-
-grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*'
-grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*'
-
-echo "Prefixes now added - new output"
-
-grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*'
-grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*'
-
-#Now lets do some clever work and add prefixes pre the db dump & subsequent use commands
+for dbname in $dbnames
+do
+if [[ $dbname != ${cpuser}\_* ]]
+        then
+                sed -i "/INTO \`db\` VALUES/ s/$dbname\\b/${cpuser}\_${dbname}/g" $sqldump
+        fi
+done
 
 find . -name '*.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 
 #IMPORT THE DUMP
 
-mysql -u root < $sqldump
+mysql -u root < ${sqldump}
 
 #Map the DBs & users to a cpanel user
 
+dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
 for i in ${dbnames[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+
+dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*"))
 for i in ${dbusers[@]}; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
 
 #Let's update the wordpress config if there is one
