@@ -109,11 +109,9 @@ echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
 echo "INSERT INTO mysql.user SELECT * from "$cpuser"_mysql.user;" | mysql -u root;
 
 
-#dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-#for i in "${dbnames[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
-
-#dbusers=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*"))
-#for i in "${dbusers[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
+dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+dbnames2=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*"))
+for i in "${!dbnames[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs ${dbnames[i]} --dbusers ${dbnames2[i]}; done
 
 #Let's update the wordpress config if there is one
 
