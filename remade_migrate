@@ -132,16 +132,16 @@ fi
 
 
 
-INSERT INTO USER
-INSERT INTO DB
+#INSERT INTO USER
+#INSERT INTO DB
 
-User (32)
+#User (32)
 
-ignore % & blank user / db
-ignore % db
-ignore '' user
-update to char32 user / db (db)
+#ignore % & blank user / db
+#ignore % db
+#ignore '' user
+#update to char32 user / db (db)
 
-$ sign
+#$ sign
 
-accept command line parameter
+#accept command line parameter
