@@ -86,10 +86,10 @@ ADD x509_subject blob NOT NULL,
 ADD max_questions int(11) unsigned NOT NULL DEFAULT '0',
 ADD max_updates int(11) unsigned NOT NULL DEFAULT '0',
 ADD max_connections int(11) unsigned NOT NULL DEFAULT '0',
-ADD max_user_connections int(11) unsigned NOT NULL DEFAULT '0'
-ADD plugin char(64) COLLATE utf8_bin NOT NULL DEFAULT 'mysql_native_password',
-ADD authentication_string text COLLARE urf8_bin,
-ADD password_expired enum('N', 'Y') CHARACHTER SET utf8 NOT NULL DEFAULT 'N'
+ADD max_user_connections int(11) unsigned NOT NULL DEFAULT '0',
+ADD plugin char(64) COLLATE utf8_bin NOT NULL DEFAULT '',
+ADD authentication_string text COLLATE utf8_bin,
+ADD password_expired enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
 ADD password_last_changed timestamp NULL DEFAULT NULL,
 ADD password_lifetime smallint(5) unsigned DEFAULT NULL,
 ADD account_locked enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
