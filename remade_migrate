@@ -57,11 +57,6 @@ find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 
 mysql -f -u root < ${sqldump}
 
-#mysqldump --no-create-db --no-create-info $cpuser_mysql -t user -t db
-
-#mysql -e "INSERT INTO mysql.db SELECT * from '$cpuser'_mysql.db;" 
-#mysql -e "INSERT INTO mysql.user SELECT * from '$cpuser'_mysql.user;" 
-
 #Map the DBs & users to a cpanel user
 
 echo "alter table "$cpuser"_mysql.user
@@ -109,9 +104,11 @@ echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
 echo "INSERT INTO mysql.user SELECT * from "$cpuser"_mysql.user;" | mysql -u root;
 
 
-dbnames=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
-dbnames2=($(grep -Pzo "(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*"))
-for i in "${!dbnames[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs ${dbnames[i]} --dbusers ${dbnames2[i]}; done
+dbdbalter=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+for i in "${dbdbalter[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+
+dbuuseralter=($(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']))
+for i in "${dbuseralter[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
 
 #Let's update the wordpress config if there is one
 
