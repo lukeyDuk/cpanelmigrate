@@ -129,3 +129,19 @@ echo WP User is now showing as $wpuser
 echo Migration completed
 
 fi
+
+
+
+INSERT INTO USER
+INSERT INTO DB
+
+User (32)
+
+ignore % & blank user / db
+ignore % db
+ignore '' user
+update to char32 user / db (db)
+
+$ sign
+
+accept command line parameter
