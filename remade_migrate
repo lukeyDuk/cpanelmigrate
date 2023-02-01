@@ -131,17 +131,7 @@ echo Migration completed
 fi
 
 
+#ignore % & blank user table / db table in schema to be imported
+#update to char32 user table / db table in schema to be imported
 
-#INSERT INTO USER
-#INSERT INTO DB
-
-#User (32)
-
-#ignore % & blank user / db
-#ignore % db
-#ignore '' user
-#update to char32 user / db (db)
-
-#$ sign
-
-#accept command line parameter
+#accept command line parameter to enter cp user
