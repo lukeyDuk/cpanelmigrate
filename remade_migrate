@@ -3,7 +3,7 @@
 read -p "enter the cPanel username: " cpuser
 cd "/home/$cpuser/public_html"
 
-sqldump=$(find . -name \*.sql -type f)
+sqldump=$(find . -name _schemas.sql -type f)
 
 if [ -z $sqldump ];
 
@@ -50,8 +50,9 @@ if [[ $dbname != ${cpuser}\_* ]]
         fi
 done
 
-find . -name '*.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
-find . -name '*.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/User char(16)/User char(32)/" {} +
 
 #IMPORT THE DUMP
 
@@ -129,9 +130,3 @@ echo WP User is now showing as $wpuser
 echo Migration completed
 
 fi
-
-
-#ignore % & blank user table / db table for in schema to be imported
-#update to char32 from char16 user table / db table in schema to be imported
-
-#accept command line parameter to enter cp user
