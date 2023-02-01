@@ -1,6 +1,7 @@
 #!/bin/sh
 
 cpuser=$1
+
 cd "/home/$cpuser/public_html"
 
 sqldump=$(find . -name _schemas.sql -type f)
@@ -58,7 +59,13 @@ find . -name '_schemas.sql' -exec sed -i "s/char(16)/char(32)/g" {} +
 
 mysql -f -u root < ${sqldump}
 
-#Map the DBs & users to a cpanel user
+#Map the DBs & users to a cpanel user (4.1)
+
+sqlver=$(awk '/Server version/ { split($NF,a,"."); print a[1] "." a[2] }' _schemas.sql)
+
+if [ "$sqlver" == "4.1" ];
+
+then
 
 echo "alter table "$cpuser"_mysql.user
 ADD Show_db_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
@@ -100,10 +107,33 @@ add Alter_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
 add Execute_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
 add Event_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
 add Trigger_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
+else
+
+Problem
+
+fi
+
+#Map the DBs & users to a cpanel user (5.1)
+
+if [ "$sqlver" == "5.1" ];
+
+then
+
+echo "alter table "$cpuser"_mysql.user
+DROP password,
+ADD Create_tablespace_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD plugin char(64) COLLATE utf8_bin NOT NULL DEFAULT '',
+ADD authentication_string text COLLATE utf8_bin,
+ADD password_expired enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+ADD password_last_changed timestamp NULL DEFAULT NULL,
+ADD password_lifetime smallint(5) unsigned DEFAULT NULL,
+ADD account_locked enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
 
 echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
 echo "INSERT INTO mysql.user SELECT * from "$cpuser"_mysql.user;" | mysql -u root;
-
+else
+Problem
+fi
 
 dbdbalter=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
 for i in "${dbdbalter[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
@@ -119,10 +149,7 @@ then echo "No WP Config, skipping section, migration completed"
 
 else
 
-wpalteration($(find . -name 'wp-config.php'))
-for i in "${wpalteration[@]}"; do -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/"; done
-
-#find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" {} +
+find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" {} +
 
 #Let's Check the wp-config new output (should be prefixed)
 
