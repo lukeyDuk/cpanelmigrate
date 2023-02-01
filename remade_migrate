@@ -1,6 +1,6 @@
 #!/bin/sh
 
-read -p "enter the cPanel username: " cpuser
+cpuser=$1
 cd "/home/$cpuser/public_html"
 
 sqldump=$(find . -name _schemas.sql -type f)
@@ -52,7 +52,7 @@ done
 
 find . -name '_schemas.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 find . -name '_schemas.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
-find . -name '_schemas.sql' -exec sed -i "s/User char(16)/User char(32)/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/char(16)/char(32)/g" {} +
 
 #IMPORT THE DUMP
 
@@ -119,8 +119,10 @@ then echo "No WP Config, skipping section, migration completed"
 
 else
 
-find . -name 'wp-config.php' -exec sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpdb'/" {} +
-find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" {} +
+wpalteration($(find . -name 'wp-config.php'))
+for i in "${wpalteration[@]}"; do -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/"; done
+
+#find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" {} +
 
 #Let's Check the wp-config new output (should be prefixed)
 
