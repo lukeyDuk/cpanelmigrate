@@ -40,6 +40,8 @@ mysql -f -u root < ${sqldump}
 
 #Map the DBs & users to a cpanel user (4.1)
 
+fi
+
 sqlver=$(awk '/Server version/ { split($NF,a,"."); print a[1] "." a[2] }' _schemas.sql)
 
 if [ "$sqlver" == "4.1" ];
@@ -60,7 +62,7 @@ add Trigger_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql
 echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
 else
 
-Problem
+echo problem importing the mysql db table
 
 fi
 
@@ -86,4 +88,4 @@ wpdbpass2=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER
 for i in "${wpdbpass[@]}"; do echo uapi --output=jsonpretty --user=$cpuser Mysql create_user name=$cpuser"_"$wpdbpass2 password=$wpdbpass; done
 wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
 for i in "${wpuser[@]}"; do echo uapi --output=jsonpretty --user=$cpuser Mysql set_privileges_on_database user=$cpuser"_"$wpdbpass2 database=$cpuser"_"$wpdb privileges='ALL PRIVILEGES'; done
-
+fi
