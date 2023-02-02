@@ -97,13 +97,17 @@ then echo "No WP Config, skipping section, migration completed"
 
 else
 
-newwpuser=$cpuser"_"$wpuser
-newwpdb=$cpuser"_"$wpdb
-wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
-wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+#newwpuser=$cpuser"_"$wpuser
+#newwpdb=$cpuser"_"$wpdb
+#wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
+#wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
 wpconfigchanges=($(find . -name wp-config.php -type f))
 
 for i in "${wpconfigchanges[@]}"; do
+  newwpuser=$cpuser"_"$wpuser
+  newwpdb=$cpuser"_"$wpdb
+  wpdb= $i print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4
+  wpuser= $i print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4
   sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" $i
   sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpuser'/" $i
 done
