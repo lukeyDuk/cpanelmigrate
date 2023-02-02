@@ -4,32 +4,19 @@ cpuser=$1
 
 cd "/home/$cpuser/public_html"
 
+#find SQL DUMP
+
 sqldump=$(find . -name _schemas.sql -type f)
 
 if [ -z $sqldump ];
 
+#If no sql, then echo nothing
+
 then echo "No sql file, nothing to do"
 
+#If SQL found then amend the entries required in the schema
+
 else
-
-wpconfig=$(find . -name wp-config.php -type f)
-wpdb=$(cat wp-config.php | grep DB_NAME | cut -d \' -f 4)
-wpuser=$(cat wp-config.php | grep DB_USER | cut -d \' -f 4)
-newwpuser=$cpuser"_"$wpuser
-newwpdb=$cpuser"_"$wpdb
-
-dbusertbls=$(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']);
-dbusertbls=$(echo $dbusertbls | xargs -n1 | sort| uniq);
-
-fi
-
-for dbusertbl in $dbusertbls
-do
-        if [[ $dbusertbl != ${cpuser}\_* ]]
-        then
-                sed -i "/INTO \`user\` VALUES/ s/$dbusertbl\\b/${cpuser}\_${dbusertbl}/g" $sqldump
-        fi
-done
 
 dbusers=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*' | grep -Pzo [^\']);
 dbnames=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']);
@@ -55,47 +42,19 @@ find . -name '_schemas.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${
 find . -name '_schemas.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
 find . -name '_schemas.sql' -exec sed -i "s/char(16)/char(32)/g" {} +
 
-#IMPORT THE DUMP
+fi
 
 mysql -f -u root < ${sqldump}
 
-#Map the DBs & users to a cpanel user (4.1)
+#find SQL version
 
 sqlver=$(awk '/Server version/ { split($NF,a,"."); print a[1] "." a[2] }' _schemas.sql)
+
+#Map the DBs & users to a cpanel user (4.1)
 
 if [ "$sqlver" == "4.1" ];
 
 then
-
-echo "alter table "$cpuser"_mysql.user
-ADD Show_db_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Super_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Create_tmp_table_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Lock_tables_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Execute_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Repl_slave_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Repl_client_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Create_view_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Show_view_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Create_routine_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Alter_routine_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Create_user_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Event_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD Trigger_priv enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD ssl_type enum('', 'ANY', 'X509', 'SPECIFIED') CHARACTER SET utf8 NOT NULL DEFAULT '',
-ADD ssl_cipher blob NOT NULL,
-ADD x509_issuer blob NOT NULL,
-ADD x509_subject blob NOT NULL,
-ADD max_questions int(11) unsigned NOT NULL DEFAULT '0',
-ADD max_updates int(11) unsigned NOT NULL DEFAULT '0',
-ADD max_connections int(11) unsigned NOT NULL DEFAULT '0',
-ADD max_user_connections int(11) unsigned NOT NULL DEFAULT '0',
-ADD plugin char(64) COLLATE utf8_bin NOT NULL DEFAULT '',
-ADD authentication_string text COLLATE utf8_bin,
-ADD password_expired enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD password_last_changed timestamp NULL DEFAULT NULL,
-ADD password_lifetime smallint(5) unsigned DEFAULT NULL,
-ADD account_locked enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
 
 echo "alter table "$cpuser"_mysql.db
 add Create_tmp_table_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
@@ -107,40 +66,30 @@ add Alter_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
 add Execute_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
 add Event_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
 add Trigger_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
 else
-
-Problem
-
+echo "done"
 fi
-
-#Map the DBs & users to a cpanel user (5.1)
 
 if [ "$sqlver" == "5.1" ];
 
 then
 
-echo "alter table "$cpuser"_mysql.user
-ADD Create_tablespace_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD plugin char(64) COLLATE utf8_bin NOT NULL DEFAULT '',
-ADD authentication_string text COLLATE utf8_bin,
-ADD password_expired enum('N', 'Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
-ADD password_last_changed timestamp NULL DEFAULT NULL,
-ADD password_lifetime smallint(5) unsigned DEFAULT NULL,
-ADD account_locked enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
-
 echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
-echo "INSERT INTO mysql.user SELECT * from "$cpuser"_mysql.user;" | mysql -u root;
 else
-Problem
+echo "done"
+
 fi
+
+#Assign DBs to cpanel user
 
 dbdbalter=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
 for i in "${dbdbalter[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
 
-dbuuseralter=($(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']))
-for i in "${dbuseralter[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbusers $i; done
+#Look for wpconfigs
 
-#Let's update the wordpress config if there is one
+wpconfig=($(find . -name wp-config.php -type f))
 
 if [ -z $wpconfig ]; 
 
@@ -148,19 +97,24 @@ then echo "No WP Config, skipping section, migration completed"
 
 else
 
-find . -name 'wp-config.php' -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" {} +
+newwpuser=$cpuser"_"$wpuser
+newwpdb=$cpuser"_"$wpdb
+wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
+wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+wpconfigchanges=($(find . -name wp-config.php -type f))
 
-#Let's Check the wp-config new output (should be prefixed)
+for i in "${wpconfigchanges[@]}"; do
+  sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" $i
+  sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpuser'/" $i
+done
 
-echo WP Config located at $wpconfig
-echo WP DB is now showing as $wpdb
-echo WP User is now showing as $wpuser
-echo Migration completed
 
+wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
+wpdbpass=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_PASSWORD" | cut -d \' -f 4))
+wpdbpass2=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+for i in "${wpdbpass[@]}"; do uapi --output=jsonpretty --user=$cpuser Mysql create_user name=$cpuser"_"$wpdbpass2 password=$wpdbpass; done
+wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+for i in "${wpuser[@]}"; do uapi --output=jsonpretty --user=$cpuser Mysql set_privileges_on_database user=$cpuser"_"$wpdbpass2 database=$cpuser"_"$wpdb privileges='ALL PRIVILEGES'; done
 fi
 
-
-
-# dbusercreation=($(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']))
-# dbusercreation2=($(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){2}\K[^,]*' | grep -Pzo [^\']))
-# for i in "${dbusercreation[@]}"; do uapi --user=$cpuser Mysql create_user name={$dbusercreation[i]} password={$dbusercreation2[i]}; done
+echo Migration completed!
