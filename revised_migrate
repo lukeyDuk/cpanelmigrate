@@ -74,6 +74,17 @@ echo problem importing the mysql db table
 
 fi
 
+if [ "$sqlver" == "5.1" ];
+
+then
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
+else
+
+echo problem importing the mysql db table
+
+fi
+
 #Assign DBs to cpanel user
 
 dbdbalter=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
