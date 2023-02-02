@@ -108,8 +108,8 @@ for i in "${wpconfigchanges[@]}"; do
   wpuser= $i grep -e "DB_USER" $i | cut -d \' -f 4
   newwpuser=$cpuser"_"$wpuser
   newwpdb=$cpuser"_"$wpdb
-  sudo sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" $i
-  sudo sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpuser'/" $i
+  sudo sed -i "/DB_USER/s/'$wpuser'/'$newwpuser'/" $i
+  sudo sed -i "/DB_NAME/s/'$wpdb'/'$newwpuser'/" $i
 done
 
 
