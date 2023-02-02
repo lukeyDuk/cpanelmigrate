@@ -158,3 +158,9 @@ echo WP User is now showing as $wpuser
 echo Migration completed
 
 fi
+
+
+
+# dbusercreation=($(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']))
+# dbusercreation2=($(grep -Pzo '(?s)INTO .?user.? VALUES[^(]\K[^;]*' $sqldump | grep  -Pao '\(([^,]*,){2}\K[^,]*' | grep -Pzo [^\']))
+# for i in "${dbusercreation[@]}"; do uapi --user=$cpuser Mysql create_user name={$dbusercreation[i]} password={$dbusercreation2[i]}; done
