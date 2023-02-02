@@ -1,0 +1,89 @@
+#!/bin/sh
+
+cpuser=$1
+
+cd "/home/$cpuser/public_html"
+
+sqldump=$(find . -name _schemas.sql -type f)
+
+if [ -z $sqldump ];
+
+then echo "No sql file, nothing to do"
+
+else
+
+dbusers=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*' | grep -Pzo [^\']);
+dbnames=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']);
+dbnames=$(echo $dbnames | xargs -n1 | sort| uniq);
+
+for dbuser in $dbusers
+do
+        if [[ $dbuser != ${cpuser}\_* ]]
+        then
+                sed -i "/INTO \`db\` VALUES/ s/$dbuser\\b/${cpuser}\_${dbuser}/g" $sqldump
+        fi
+done
+
+for dbname in $dbnames
+do
+if [[ $dbname != ${cpuser}\_* ]]
+        then
+                sed -i "/INTO \`db\` VALUES/ s/$dbname\\b/${cpuser}\_${dbname}/g" $sqldump
+        fi
+done
+
+find . -name '_schemas.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/char(16)/char(32)/g" {} +
+
+mysql -f -u root < ${sqldump}
+
+#Map the DBs & users to a cpanel user (4.1)
+
+sqlver=$(awk '/Server version/ { split($NF,a,"."); print a[1] "." a[2] }' _schemas.sql)
+
+if [ "$sqlver" == "4.1" ];
+
+then
+
+echo "alter table "$cpuser"_mysql.db
+add Create_tmp_table_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Lock_tables_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Create_view_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Show_view_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Create_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Alter_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Execute_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Event_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Trigger_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
+else
+
+Problem
+
+fi
+
+dbdbalter=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+for i in "${dbdbalter[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+
+if [ -z $wpconfig ]; 
+
+then echo "No WP Config, skipping section, migration completed"
+
+else
+
+newwpuser=$cpuser"_"$wpuser
+newwpdb=$cpuser"_"$wpdb
+wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
+wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+wpconfigchanges=($(find . -name wp-config.php -type f))
+for i in "${wpconfigchanges[@]}"; do -exec sed -i -e "/DB_USER/s/'$wpuser'/'$newwpuser'/" | -exec sed -i -e "/DB_NAME/s/'$wpdb'/'$newwpuser'/"; done
+
+wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
+wpdbpass=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_PASSWORD" | cut -d \' -f 4))
+wpdbpass2=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+for i in "${wpdbpass[@]}"; do echo uapi --output=jsonpretty --user=$cpuser Mysql create_user name=$cpuser"_"$wpdbpass2 password=$wpdbpass; done
+wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+for i in "${wpuser[@]}"; do echo uapi --output=jsonpretty --user=$cpuser Mysql set_privileges_on_database user=$cpuser"_"$wpdbpass2 database=$cpuser"_"$wpdb privileges='ALL PRIVILEGES'; done
+
