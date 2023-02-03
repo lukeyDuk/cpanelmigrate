@@ -69,7 +69,7 @@ add Trigger_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql
 
 echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
 else
-echo "done"
+echo "No 4.1 SQL Found"
 fi
 
 if [ "$sqlver" == "5.1" ];
@@ -78,7 +78,17 @@ then
 
 echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
 else
-echo "done"
+echo "No 5.1 SQL Found"
+
+fi
+
+if [ "$sqlver" == "5.7" ];
+
+then
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
+else
+echo "No 5.7 SQL Found"
 
 fi
 
@@ -123,9 +133,10 @@ wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
 wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
 wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-uapi --output=jsonpretty --user=$cpuser Mysql create_user name=$wpuser password=$wppass; done
+uapi --output=jsonpretty --user="$cpuser" Mysql create_user name="$wpuser" password="$wppass"; done
 
 wpusers=($(find . -name "wp-config.php"))
+
 for i in "${wpusers[@]}"; do 
 
 cpuser=$cpuser
@@ -133,8 +144,10 @@ wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
 wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
 wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-uapi --output=jsonpretty --user=$cpuser Mysql set_privileges_on_database user=$wpuser database=$wpdb privileges="ALL PRIVILEGES"; done
+uapi --output=jsonpretty --user="$cpuser" Mysql set_privileges_on_database user="$wpuser" database="$wpdb" privileges="ALL PRIVILEGES"; done
 
 fi
 
 echo Migration completed!
+
+# error report
