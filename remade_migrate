@@ -1,5 +1,4 @@
 #!/bin/sh
-
 cpuser=$1
 
 cd "/home/$cpuser/public_html"
@@ -110,21 +109,20 @@ then echo "No WP Config, skipping section, migration completed"
 
 else
 
-#newwpuser=$cpuser"_"$wpuser
-#newwpdb=$cpuser"_"$wpdb
-#wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
-#wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
-
 wpconfigchanges=($(find . -name wp-config.php))
 #Create copies then adjust WP CONFIG
 for i in "${wpconfigchanges[@]}"; do
   cp $i $i"_"BACKUP
   wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
   wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
-  newwpuser=$cpuser"_"$wpuser
+  wppass=$(grep -e "DB_PASSWORD" $i | cut -d \' -f 4)
+  NEW_UUID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+  newrandomuser=$cpuser"_"$NEW_UUID
+  newwppass=$NEW_UUID
   newwpdb=$cpuser"_"$wpdb
-  sed -i "/DB_USER/s/'$wpuser'/'$newwpuser'/" $i
+  sed -i "/DB_USER/s/'$wpuser'/'$newrandomuser'/" $i
   sed -i "/DB_NAME/s/'$wpdb'/'$newwpdb'/" $i
+  sed -i "/DB_PASSWORD/s/'$wppass'/'$newwppass'/" $i
 
 done
 
@@ -134,37 +132,19 @@ for i in "${wpconfigs[@]}"; do
 
 cpuser=$cpuser
 wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
-wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
-wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
+wpuser2=$(grep -e "DB_USER" $i | cut -d \' -f 4)
+wppass2=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-uapi --output=jsonpretty --user="${cpuser}" Mysql create_user name="${wpuser}" password="${wppass}"; 
-uapi --output=jsonpretty --user="${cpuser}" Mysql set_privileges_on_database user="${wpuser}" database="${wpdb}" privileges="ALL PRIVILEGES";
-uapi --output=jsonpretty --user="${cpuser}" Mysql set_password user="${wpuser}" password="${wppass}";
+uapi --output=jsonpretty --user="${cpuser}" Mysql create_user name="${wpuser2}" password="${wppass2}"; 
+uapi --output=jsonpretty --user="${cpuser}" Mysql set_privileges_on_database user="${wpuser2}" database="${wpdb}" privileges="ALL PRIVILEGES";
+uapi --output=jsonpretty --user="${cpuser}" Mysql set_password user="${wpuser2}" password="${wppass2}";
+
 done
 
-#wpusers=($(find . -name "wp-config.php"))
-#
-#for i in "${wpusers[@]}"; do 
-#
-#cpuser=$cpuser
-#wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
-#wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
-#wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
-
-#uapi --output=jsonpretty --user="${cpuser}" Mysql set_privileges_on_database user="${wpuser}" database="${wpdb}" privileges="ALL PRIVILEGES"; done
-
 fi
-
-#wpconfigs2=($(find . -name "wp-config.php"))
-#for i in "${wpconfigs2[@]}"; do 
-
-##cpuser=$cpuser
-#wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
-#wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
-#wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
-
-#uapi --output=jsonpretty --user="${cpuser}" Mysql set_password user="${wpuser}" password="${wppass}";done
 
 echo Migration completed!
 
 # error report
+# auto rollback
+# auto rollback
