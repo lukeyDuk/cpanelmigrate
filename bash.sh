@@ -1,90 +1,153 @@
 #!/bin/sh
 
- 	echo "What is the cPanel username!"
-	read cpuser
+cpuser=$1
 
- 	cd /home/${cpuser}/public_html
+cd "/home/$cpuser/public_html"
 
-# Variable settings & file finding
+#find SQL DUMP
 
-	 wpconf=$(find . -name wp-config.php -type f)
-	 dbname=$(grep "DB_NAME" ${wpconf} | cut -d \' -f 4)
- 	 username=$(grep "DB_USER" ${wpconf} | cut -d \' -f 4)
-	 userpass=$(grep "DB_PASSWORD" ${wpconf} | cut -d \' -f 4)
-	 sqldump=$(find . -name \*.sql -type f)
-	 newdbname=$cpuser"_"$dbname
-	 newdbuser=$cpuser"_"$username
-	 hostname=$(hostname)
- 	 wpbackup=$(cp ${wpconf} wpconf-backup.php)
- 	 wpbackuplocation=$(find . -name wpconf-backup.php -type f)
-	 sitebackuplocation=$(find . -name sitefiles -type d)
-	 sitelocation=$(/home/${cpuser}/public_html)
+sqldump=$(find . -name _schemas.sql -type f)
 
-# Check the SQL version being used
+if [ -z $sqldump ];
+
+#If no sql, then echo nothing
+
+then echo "No sql file, nothing to do"
+
+#If SQL found then amend the entries required in the schema
+
+else
+
+dbusers=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){2}\K[^,]*' | grep -Pzo [^\']);
+dbnames=$(grep -Pzo '(?s)INTO .?db.? VALUES[^(]\K[^;]*' $sqldump | grep -Pao '\(([^,]*,){1}\K[^,]*' | grep -Pzo [^\']);
+dbnames=$(echo $dbnames | xargs -n1 | sort| uniq);
+
+for dbuser in $dbusers
+do
+        if [[ $dbuser != ${cpuser}\_* ]]
+        then
+                sed -i "/INTO \`db\` VALUES/ s/$dbuser\\b/${cpuser}\_${dbuser}/g" $sqldump
+        fi
+done
+
+for dbname in $dbnames
+do
+if [[ $dbname != ${cpuser}\_* ]]
+        then
+                sed -i "/INTO \`db\` VALUES/ s/$dbname\\b/${cpuser}\_${dbname}/g" $sqldump
+        fi
+done
+
+find . -name '_schemas.sql' -exec sed -i "s/\\(CREATE DATABASE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/\\(USE [^\`]*\`\\)/\\1${cpuser}_/" {} +
+find . -name '_schemas.sql' -exec sed -i "s/char(16)/char(32)/g" {} +
+
+fi
+
+mysql -f -u root < ${sqldump}
+
+#find SQL version
+
+sqlver=$(awk '/Server version/ { split($NF,a,"."); print a[1] "." a[2] }' _schemas.sql)
+
+#Map the DBs & users to a cpanel user (4.1)
+
+if [ "$sqlver" == "4.1" ];
+
+then
+
+echo "alter table "$cpuser"_mysql.db
+add Create_tmp_table_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Lock_tables_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Create_view_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Show_view_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Create_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Alter_routine_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Execute_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Event_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N',
+add Trigger_priv enum('N','Y') CHARACTER SET utf8 NOT NULL DEFAULT 'N';" | mysql -u root;
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
+else
+echo "No 4.1 SQL Found"
+fi
+
+if [ "$sqlver" == "5.1" ];
+
+then
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
+else
+echo "No 5.1 SQL Found"
+
+fi
+
+if [ "$sqlver" == "5.7" ];
+
+then
+
+echo "INSERT INTO mysql.db SELECT * from "$cpuser"_mysql.db;" | mysql -u root;
+else
+echo "No 5.7 SQL Found"
+
+fi
+
+#Assign DBs to cpanel user
+
+dbdbalter=($(grep $sqldump -Poe "CREATE DATABASE [^\`]*\`\K[^\`]*"))
+for i in "${dbdbalter[@]}"; do /usr/local/cpanel/bin/dbmaptool $cpuser --type mysql --dbs $i; done
+
+#Look for wpconfigs
+
+wpconfig=($(find . -name wp-config.php -type f))
+
+if [ -z $wpconfig ]; 
+
+then echo "No WP Config, skipping section, migration completed"
+
+else
+
+#newwpuser=$cpuser"_"$wpuser
+#newwpdb=$cpuser"_"$wpdb
+#wpdb=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_NAME" | cut -d \' -f 4))
+#wpuser=($(find . -name "wp-config.php" -print0 | xargs -0 -r grep -e "DB_USER" | cut -d \' -f 4))
+
+wpconfigchanges=($(find . -name wp-config.php))
+
+for i in "${wpconfigchanges[@]}"; do
+  wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
+  wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
+  newwpuser=$cpuser"_"$wpuser
+  newwpdb=$cpuser"_"$wpdb
+  sed -i "/DB_USER/s/'$wpuser'/'$newwpuser'/" $i
+  sed -i "/DB_NAME/s/'$wpdb'/'$newwpdb'/" $i
+
+done
 
 
+wpconfigs=($(find . -name "wp-config.php"))
+for i in "${wpconfigs[@]}"; do 
 
-# Create the db
-# If /root/.my.cnf exists then it won't ask for root password
+cpuser=$cpuser
+wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
+wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
+wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-if [ -f /root/.my.cnf ]; then
+uapi --output=jsonpretty --user="$cpuser" Mysql create_user name="${wpuser}" password="${wppass}"; done
 
-	   
-	echo "Creating new MySQL database..."
-	mysql -e "CREATE DATABASE ${newdbname} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
-	echo "Database successfully created!"
-	
-    
-	echo "Creating new user..."
-	mysql -e "CREATE USER ${newdbuser}@localhost IDENTIFIED BY '${userpass}';"
-	echo "User successfully created!"
+wpusers=($(find . -name "wp-config.php"))
 
-	echo "Granting ALL privileges on ${newdbname} to ${newdbuser}!"
-	mysql -e "GRANT ALL PRIVILEGES ON ${newdbname}.* TO '${newdbuser}'@'localhost';"
-	mysql -e "FLUSH PRIVILEGES;"
-	echo "You're good now on that, just importing the dump"
+for i in "${wpusers[@]}"; do 
 
-## Other DB's in dump need creating
+cpuser=$cpuser
+wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
+wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
+wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-    mysql -e ${newdbname} < ${sqldump}
-    echo "Awesome, all done!"
-	exit
+uapi --output=jsonpretty --user="$cpuser" Mysql set_privileges_on_database user="${wpuser}" database="${wpdb}" privileges="ALL PRIVILEGES"; done
 
-#Map the DB to a user
+fi
 
-    /usr/local/cpanel/bin/dbmaptool ${cpuser} --type mysql --dbs ${newdbname}
-    echo "We've added ${newdbname} to the dbmap for account ${cpuser}"
+echo Migration completed!
 
-# Make a copy of wp-config
-
-	cp $wpconf wpconf-backup
-	echo "We've made a backup of your config prior to these changes"
-	echo "This can be found at $wpbackuplocation"
-
-# Add DB & USER prefix in wp-config
-
-	$wpconf -exec sed -i s/$dbname/$newdbname/gI {} \;
-	echo "We've now replaced $dbname with $newdbname in the WP Config"
-
-	$wpconf -exec sed -i s/$username/$newdbuser/gI {} \;
-	echo "We've now replaced $username with $newdbuser in the WP Config"
-
-# Add info to advise wp-config auto updated
-
-# CLEANUP // DELETE SQL DUMP
-
-	rm $sqldump -f
-	echo "SQL Dump succesfully removed"
-
-# CLEANUP // MOVE SITE FILES TO PUBLIC_HTML
-
-	mv -v $sitebackuplocation $sitelocation
-	echo "Migrated files moved to correct location"
-
-	rm $sitebackuplocation -f
-	echo "Old directory removed"
-# ADVISE OF ERRORS
-
-# CP INSTANCE NAME
-
-	echo You have migrated this account to $hostname
+# error report
