@@ -133,7 +133,7 @@ wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
 wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
 wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-uapi --output=jsonpretty --user="${cpuser}" Mysql create_user name="${wpuser}" password="${wppass}"; done
+uapi --output=jsonpretty --user="${cpuser}" Mysql create_user name="$wpuser" password="$wppass"; done
 
 wpusers=($(find . -name "wp-config.php"))
 
@@ -144,7 +144,7 @@ wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
 wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
 wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-uapi --output=jsonpretty --user="$cpuser" Mysql set_privileges_on_database user="${wpuser}" database="${wpdb}" privileges="ALL PRIVILEGES"; done
+uapi --output=jsonpretty --user="${cpuser}" Mysql set_privileges_on_database user="${wpuser}" database="${wpdb}" privileges="ALL PRIVILEGES"; done
 
 fi
 
@@ -156,7 +156,7 @@ wpdb=$(grep -e "DB_NAME" $i | cut -d \' -f 4)
 wpuser=$(grep -e "DB_USER" $i | cut -d \' -f 4)
 wppass=$(grep -e "DB_PASS" $i | cut -d \' -f 4)
 
-uapi --output=jsonpretty --user="$cpuser" Mysql set_password user="${wpuser}" password="${wppass}";done
+uapi --output=jsonpretty --user="${cpuser}" Mysql set_password user="${wpuser}" password="${wppass}";done
 
 echo Migration completed!
 
